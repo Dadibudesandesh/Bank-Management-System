@@ -7,6 +7,7 @@ import com.example.BanckingAppBackend.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.BanckingAppBackend.dto.LoginResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -55,13 +56,31 @@ public class UserController {
     }
 
 
+//    @PostMapping("/login")
+//    public ResponseEntity<String> login(@RequestBody User loginReq) {
+//        String result = userService.loginUser(loginReq.getEmail(), loginReq.getPassword());
+//        if (result.equals("Login successful")) return ResponseEntity.ok(result);
+//        return ResponseEntity.badRequest().body(result);
+//    }
+
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User loginReq) {
-        String result = userService.loginUser(loginReq.getEmail(), loginReq.getPassword());
-        if (result.equals("Login successful")) return ResponseEntity.ok(result);
-        return ResponseEntity.badRequest().body(result);
+    public ResponseEntity<?> login(@RequestBody User loginReq) {
+
+        try {
+            LoginResponse response = userService.loginUser(
+                    loginReq.getEmail(),
+                    loginReq.getPassword()
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (org.springframework.security.core.AuthenticationException ex) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("message", "Invalid credentials or account not approved"));
+        }
     }
 
+    
     @GetMapping("/email/{email}")
     public User getUserByEmail(@PathVariable String email) {
         return userService.getUserByEmail(email);
