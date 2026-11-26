@@ -49,6 +49,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "APPROVED".equals(user.getStatus());
+        return user.getStatus() != null
+                && "APPROVED".equalsIgnoreCase(user.getStatus().trim());
     }
 }

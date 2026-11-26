@@ -7,47 +7,113 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  // const handleLogin = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
 
-    try {
-      const response = await fetch("http://localhost:8080/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+  //   try {
+  //     const response = await fetch("http://localhost:8080/api/login", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ email, password }),
+  //     });
 
-      const text = await response.text();
-      setLoading(false);
+  //     const text = await response.text();
+  //     setLoading(false);
 
-      if (response.ok) {
-        alert("✅ " + text);
+  //     if (response.ok) {
+  //       alert("✅ " + text);
 
-        const res = await fetch(`http://localhost:8080/api/email/${email}`);
-        const userData = await res.json();
+  //       const res = await fetch(`http://localhost:8080/api/email/${email}`);
+  //       const userData = await res.json();
 
-        localStorage.setItem("user", JSON.stringify(userData));
+  //       localStorage.setItem("user", JSON.stringify(userData));
 
-        if(userData==null){
-           navigate("/");
-        }else if (userData.role === "ADMIN") {
-          navigate("/adminDashboard");
-        } else if (userData.role === "USER") {
-          navigate("/dashboard");
-        } else {
-          alert("⚠️ Unknown role, contact support!");
-        }
+  //       if(userData==null){
+  //          navigate("/");
+  //       }else if (userData.role === "ADMIN") {
+  //         navigate("/adminDashboard");
+  //       } else if (userData.role === "USER") {
+  //         navigate("/dashboard");
+  //       } else {
+  //         alert("⚠️ Unknown role, contact support!");
+  //       }
 
-      } else {
-        alert(text);
-      }
-    } catch (error) {
-      setLoading(false);
-      alert("❌ Unable to connect to server.");
-      console.error("Login error:", error);
+  //     } else {
+  //       alert(text);
+  //     }
+  //   } catch (error) {
+  //     setLoading(false);
+  //     alert("❌ Unable to connect to server.");
+  //     console.error("Login error:", error);
+  //   }
+  // };
+
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    const response = await fetch("http://localhost:8080/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Login failed");
+      return;
     }
-  };
+
+    // Save JWT token
+    localStorage.setItem("token", data.token);
+
+    // Fetch user details using JWT
+    const res = await fetch(
+      `http://localhost:8080/api/email/${encodeURIComponent(data.email)}`,
+      {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${data.token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`User details request failed: ${res.status}`);
+    }
+
+    const userData = await res.json();
+
+    // Save user details
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("role", data.role);
+
+    alert("Login successful!");
+
+    if (data.role === "ADMIN") {
+      navigate("/adminDashboard");
+    } else if (data.role === "USER") {
+      navigate("/dashboard");
+    } else {
+      alert("Unknown role, contact support!");
+    }
+
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Unable to connect to server: " + error.message);
+
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200">
