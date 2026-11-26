@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import UserDeposit from "./UserDeposit";
 import UserWithdraw from "./UserWithdraw";
 import UserTransactions from "./UserTransaction";
+import api from "../api/axiosConfig";
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -10,47 +11,108 @@ export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState("home");
   const [transactions, setTransactions] = useState([]);
 
- useEffect(() => {
+//  useEffect(() => {
+//   const storedUser = JSON.parse(localStorage.getItem("user"));
+//   if (!storedUser) {
+//     navigate("/");
+//     return;
+//   }
+
+//   const fetchUser = async () => {
+//     const res = await fetch(`http://localhost:8080/api/${storedUser.id}`);
+//     const freshUser = await res.json();
+//     setUser(freshUser);
+//     localStorage.setItem("user", JSON.stringify(freshUser));
+//   };
+
+//   fetchUser();
+// }, []);
+
+
+useEffect(() => {
   const storedUser = JSON.parse(localStorage.getItem("user"));
+
   if (!storedUser) {
     navigate("/");
     return;
   }
 
   const fetchUser = async () => {
-    const res = await fetch(`http://localhost:8080/api/${storedUser.id}`);
-    const freshUser = await res.json();
-    setUser(freshUser);
-    localStorage.setItem("user", JSON.stringify(freshUser));
+    try {
+      // Axios automatically attaches JWT
+      const response = await api.get(`/${storedUser.id}`);
+
+      const freshUser = response.data;
+
+      setUser(freshUser);
+      localStorage.setItem("user", JSON.stringify(freshUser));
+
+    } catch (error) {
+      console.error("Error fetching user:", error);
+
+      if (error.response?.status === 401 ||
+          error.response?.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/");
+      }
+    }
   };
 
   fetchUser();
-}, []);
+}, [navigate]);
 
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      if (!user) return;
-      try {
-        const res = await fetch(
-          `http://localhost:8080/api/user/${user.id}/latest`
-        );
-        console.log(user.id)
-        if (res.ok) {
-          const data = await res.json();
-          setTransactions(data);
-        }
-      } catch (err) {
-        console.error("Error fetching transactions:", err);
-      }
-    };
-    fetchTransactions();
-  }, [user]);
+  // useEffect(() => {
+  //   const fetchTransactions = async () => {
+  //     if (!user) return;
+  //     try {
+  //       const res = await fetch(
+  //         `http://localhost:8080/api/user/${user.id}/latest`
+  //       );
+  //       console.log(user.id)
+  //       if (res.ok) {
+  //         const data = await res.json();
+  //         setTransactions(data);
+  //       }
+  //     } catch (err) {
+  //       console.error("Error fetching transactions:", err);
+  //     }
+  //   };
+  //   fetchTransactions();
+  // }, [user]);
+
+
+useEffect(() => {
+  const fetchTransactions = async () => {
+    if (!user) return;
+
+    try {
+      const response = await api.get(`/user/${user.id}/latest`);
+
+      setTransactions(response.data);
+
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+    }
+  };
+
+  fetchTransactions();
+}, [user]);
+
+  // const handleLogout = () => {
+  //   localStorage.removeItem("user");
+  //   navigate("/");
+  // };
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
-  };
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("role");
+
+  navigate("/");
+};
 
   if (!user) return null;
 
